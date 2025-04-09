@@ -6,7 +6,7 @@ import { compare, hash } from 'bcryptjs';
 import { Response } from 'express';
 import { AuthenticationException } from 'src/core/exceptions/AuthenticationException';
 import { UsersService } from '../../users/services/users.service';
-import { AuthDto } from '../../users/dto/auth.dto';
+import { AuthRequestDto } from '../dto/auth.request.dto';
 import { generateOTP } from 'src/core/utils/codeGenerator';
 import { User } from 'src/database/mongodb/schemas/User.schema';
 import dayjs from 'dayjs';
@@ -32,9 +32,12 @@ export class AuthService {
       }
     }
 
-    if (findUser?.otp && findUser?.otp?.expiresAt > dayjs().toDate()) {
+    if (findUser?.otp?.repeatAt > dayjs().toDate()) {
+      const await_minutes =
+        Math.abs(dayjs().diff(findUser?.otp?.repeatAt, 'minute')) + 1;
+
       throw new HttpException(
-        `Too frequent request for SMS. Repeat the attempt in ${Math.abs(dayjs().diff(findUser?.otp?.expiresAt, 'minute'))} minutes.`,
+        `Too frequent request for SMS. Repeat the attempt in ${await_minutes} minutes.`,
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -48,7 +51,8 @@ export class AuthService {
       userEntity.phoneNumber = user.phoneNumber;
       await this.usersService.insert(userEntity);
     } else {
-      await this.usersService.update(findUser._id.toString(), userEntity);
+      userEntity._id = findUser._id;
+      await this.usersService.update(userEntity);
     }
 
     await sendSMS(user.phoneNumber, `You code for entry: ${codeOTP}`);
@@ -57,19 +61,31 @@ export class AuthService {
   async phoneVerify(user: User, response: Response) {
     const findUser: User = await this.usersService.getByPhone(user.phoneNumber);
 
-    console.log(user);
-    console.log(findUser);
+    if (findUser?.otp?.expiresAt < dayjs().toDate()) {
+      const codeOTP = generateOTP(6);
+
+      const userEntity: User = new User();
+      userEntity.otp = { code: codeOTP };
+      userEntity._id = findUser._id;
+
+      await this.usersService.update(userEntity);
+
+      await sendSMS(user.phoneNumber, `You code for entry: ${codeOTP}`);
+
+      throw new HttpException(
+        'The code lifetime is over. New code is sent to your phone.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
 
     if (findUser.otp.code !== String(user.otp.code)) {
       throw new HttpException('Wrong code!', HttpStatus.BAD_REQUEST);
     }
 
     findUser.otp = null;
+    findUser.isPhoneVerified = true;
 
-    const updateUser: User = await this.usersService.update(
-      findUser._id.toString(),
-      findUser,
-    );
+    const updateUser: User = await this.usersService.update(findUser);
 
     await this.login(updateUser, response);
   }
@@ -142,7 +158,7 @@ export class AuthService {
     return user;
   }
 
-  async logout(user: AuthDto, response: Response) {
+  async logout(user: AuthRequestDto, response: Response) {
     await this.usersService.updateRefreshTokenByPhone(user.phoneNumber, '');
 
     response.clearCookie('Authentication');

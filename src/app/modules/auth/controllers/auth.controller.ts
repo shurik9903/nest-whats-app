@@ -12,7 +12,7 @@ import { AuthService } from '../services/auth.service';
 import { JwtRefreshAuthGuard } from 'src/core/guards/auth/jwt-refresh.guard';
 import { JwtAuthGuard } from 'src/core/guards/auth/jwt-auth.guard';
 import { CurrentUser } from 'src/core/types/current-user.decorator';
-import { AuthDto } from '../../users/dto/auth.dto';
+import { AuthRequestDto } from '../dto/auth.request.dto';
 import { User } from 'src/database/mongodb/schemas/User.schema';
 import { AuthValidation } from 'src/core/validation/auth.validation';
 
@@ -24,7 +24,7 @@ export class AuthController {
   @UsePipes(new ValidationPipe({ groups: [AuthValidation.OnPhone] }))
   async phone(
     @Body()
-    user: AuthDto,
+    user: AuthRequestDto,
   ) {
     const userEntity: User = {
       ...user,
@@ -37,7 +37,7 @@ export class AuthController {
   @UsePipes(new ValidationPipe({ groups: [AuthValidation.OnCode] }))
   async phoneVerify(
     @Body()
-    user: AuthDto,
+    user: AuthRequestDto,
     // @Res (Response) - получение Response. passthrough - пропустить запрос.
     @Res({ passthrough: true }) response: Response,
   ) {
@@ -55,7 +55,7 @@ export class AuthController {
   @UseGuards(JwtRefreshAuthGuard)
   async refreshToken(
     @CurrentUser()
-    user: AuthDto,
+    user: AuthRequestDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     await this.authService.login(user, response);
@@ -67,7 +67,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   async deleteToken(
     @CurrentUser()
-    user: AuthDto,
+    user: AuthRequestDto,
     @Res({ passthrough: true }) response: Response,
   ) {
     await this.authService.logout(user, response);

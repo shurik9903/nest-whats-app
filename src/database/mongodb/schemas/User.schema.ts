@@ -12,7 +12,10 @@ class OTP {
   @Prop({ type: Date, default: () => dayjs().toDate() })
   createdAt?: Date;
 
-  @Prop({ type: Date, default: () => dayjs().add(5, 'minute').toDate() })
+  @Prop({ type: Date, default: () => dayjs().add(1, 'minute').toDate() })
+  repeatAt?: Date;
+
+  @Prop({ type: Date, default: () => dayjs().add(10, 'minute').toDate() })
   expiresAt?: Date;
 }
 

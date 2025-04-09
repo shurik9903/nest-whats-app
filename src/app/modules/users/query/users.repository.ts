@@ -12,8 +12,8 @@ export class UsersRepository {
     return newUser.save();
   }
 
-  async update(id: string, data: User): Promise<User | undefined> {
-    return this.userModel.findByIdAndUpdate(id, data);
+  async update(data: User): Promise<User | undefined> {
+    return this.userModel.findByIdAndUpdate(data._id, data);
   }
 
   async getById(id: string): Promise<User | undefined> {

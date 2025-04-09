@@ -11,8 +11,8 @@ export class UsersService {
     return await this.usersRepository.insert(data);
   }
 
-  async update(id: string, data: User): Promise<User> {
-    const user: User = await this.usersRepository.update(id, data);
+  async update(data: User): Promise<User> {
+    const user: User = await this.usersRepository.update(data);
 
     if (user === undefined) {
       throw new ResourceNotFoundException('User not found');
