@@ -1,21 +1,13 @@
-import { MaxLength, MinLength } from 'class-validator';
-
 export class UserDto {
-  @MinLength(4)
-  @MaxLength(100)
+  _id?: string;
+
   username?: string;
 
   profilePic?: string;
 
-  isOnline?: boolean;
+  isOnline: boolean;
 
-  phoneNumber?: string;
+  phoneNumber: string;
 
-  groupId?: string[];
-
-  refreshToken?: string;
-
-  otp: {
-    code: string;
-  };
+  groupId: string[];
 }
