@@ -5,6 +5,7 @@ import { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { AuthService } from 'src/app/modules/auth/services/auth.service';
 import { tokenPayload } from 'src/core/interfaces/token-payload.interface';
+import { User } from 'src/database/mongodb/schemas/User.schema';
 
 @Injectable()
 export class JwtRefreshStrategy extends PassportStrategy(
@@ -24,7 +25,7 @@ export class JwtRefreshStrategy extends PassportStrategy(
     });
   }
 
-  async validate(request: Request, payload: tokenPayload) {
+  async validate(request: Request, payload: tokenPayload): Promise<User> {
     return this.authService.verifyUserRefreshToken(
       String(request.cookies?.Refresh),
       payload.userId,
