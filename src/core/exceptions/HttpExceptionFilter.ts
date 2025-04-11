@@ -5,13 +5,15 @@ import {
   UnauthorizedException,
   BadRequestException,
   HttpException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import { BaseExceptionFilter } from '@nestjs/core';
 import { Response } from 'express';
 import { ExceptionBody } from './ExceptionBody';
-import { ResourceNotFoundException } from './ResourceNotFoundException';
-import { AccessDeniedException } from './AccessDeniedException';
-import { AuthenticationException } from './AuthenticationException';
+import { ResourceNotFoundException } from './ResourceNotFound.exception';
+import { AccessDeniedException } from './AccessDenied.exception';
+import { AuthenticationException } from './Authentication.exception';
+import { ImageUploadException } from './ImageUpload.exception';
 
 @Catch()
 export class HttpExceptionFilter extends BaseExceptionFilter {
@@ -49,6 +51,16 @@ export class HttpExceptionFilter extends BaseExceptionFilter {
       case BadRequestException.name:
         return this.BadRequestExceptionHandler(
           exception as BadRequestException,
+        );
+
+      case ImageUploadException.name:
+        return this.ImageUploadExceptionHandler(
+          exception as ImageUploadException,
+        );
+
+      case UnprocessableEntityException.name:
+        return this.UnprocessableEntityExceptionHandler(
+          exception as UnprocessableEntityException,
         );
 
       case HttpException.name:
@@ -115,6 +127,24 @@ export class HttpExceptionFilter extends BaseExceptionFilter {
     return new ExceptionBody({
       message: exception.message,
       status: HttpStatus.BAD_REQUEST,
+    });
+  }
+
+  private ImageUploadExceptionHandler(
+    exception: ImageUploadException,
+  ): ExceptionBody {
+    return new ExceptionBody({
+      message: exception.message,
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
+    });
+  }
+
+  private UnprocessableEntityExceptionHandler(
+    exception: UnprocessableEntityException,
+  ): ExceptionBody {
+    return new ExceptionBody({
+      message: exception.message,
+      status: HttpStatus.INTERNAL_SERVER_ERROR,
     });
   }
 }
