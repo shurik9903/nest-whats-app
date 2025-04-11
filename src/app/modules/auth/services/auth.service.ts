@@ -4,14 +4,15 @@ import { JwtService } from '@nestjs/jwt';
 import { tokenPayload } from 'src/core/interfaces/token-payload.interface';
 import { compare, hash } from 'bcryptjs';
 import { Response } from 'express';
-import { AuthenticationException } from 'src/core/exceptions/AuthenticationException';
+import { AuthenticationException } from 'src/core/exceptions/Authentication.exception';
 import { UsersService } from '../../users/services/users.service';
 import { AuthRequestDto } from '../dto/auth.request.dto';
 import { generateOTP } from 'src/core/utils/codeGenerator';
 import { User } from 'src/database/mongodb/schemas/User.schema';
 import dayjs from 'dayjs';
 import { sendSMS } from 'src/core/utils/SMSSender';
-import { ResourceNotFoundException } from 'src/core/exceptions/ResourceNotFoundException';
+import { ResourceNotFoundException } from 'src/core/exceptions/ResourceNotFound.exception';
+import { TokenConfig } from '../../../../config/interfaces/token.interface';
 
 @Injectable()
 export class AuthService {
@@ -84,6 +85,7 @@ export class AuthService {
 
     findUser.otp = null;
     findUser.isPhoneVerified = true;
+    findUser.isOnline = true;
 
     const updateUser: User = await this.usersService.update(findUser);
 
@@ -91,24 +93,16 @@ export class AuthService {
   }
 
   async login(user: User, response: Response) {
+    const token: TokenConfig = this.configService.getOrThrow('jwt');
+
     const expiresAccessToken = new Date();
     expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() +
-        parseInt(
-          this.configService.getOrThrow<string>(
-            'JWT_ACCESS_TOKEN_EXPIRATION_MS',
-          ),
-        ),
+      expiresAccessToken.getTime() + parseInt(token.token.expire),
     );
 
     const expiresRefreshToken = new Date();
     expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() +
-        parseInt(
-          this.configService.getOrThrow<string>(
-            'JWT_REFRESH_TOKEN_EXPIRATION_MS',
-          ),
-        ),
+      expiresRefreshToken.getTime() + parseInt(token.refresh.expire),
     );
 
     const tokenPayload: tokenPayload = {
@@ -117,13 +111,13 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_ACCESS_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow('JWT_ACCESS_TOKEN_EXPIRATION_MS')}ms`,
+      secret: token.token.secret,
+      expiresIn: `${token.token.expire}ms`,
     });
 
     const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: this.configService.getOrThrow('JWT_REFRESH_TOKEN_SECRET'),
-      expiresIn: `${this.configService.getOrThrow('JWT_REFRESH_TOKEN_EXPIRATION_MS')}ms`,
+      secret: token.refresh.secret,
+      expiresIn: `${token.refresh.expire}ms`,
     });
 
     await this.usersService.updateRefreshTokenById(
