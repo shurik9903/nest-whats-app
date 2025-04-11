@@ -13,7 +13,7 @@ export class UsersRepository {
   }
 
   async update(data: User): Promise<User | undefined> {
-    return this.userModel.findByIdAndUpdate(data._id, data);
+    return await this.userModel.findByIdAndUpdate(data._id, data).exec();
   }
 
   async getById(id: string): Promise<User | undefined> {
