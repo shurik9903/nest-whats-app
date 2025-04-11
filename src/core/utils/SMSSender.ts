@@ -1,10 +1,10 @@
 // import { Twilio } from 'twilio';
-import { env_constants } from './constanst';
+// import { env_constants } from './constanst';
 
 // const { twilioAccountSID, twilioAuthToken, twilioPhoneNumber } = constants;
 // const client = new Twilio(twilioAccountSID, twilioAuthToken);
 
-const { SMSAccountSID, SMSAuthToken } = env_constants;
+// const { SMSAccountSID, SMSAuthToken } = env_constants;
 
 export const sendSMS = async (phoneNumber: string, message: string) => {
   try {
