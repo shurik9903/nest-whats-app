@@ -23,31 +23,31 @@ class OTP {
 export class User {
   _id?: mongoose.Types.ObjectId | string;
 
-  @Prop({ required: false, maxlength: 100 })
+  @Prop({ maxlength: 100, default: null })
   username?: string;
 
-  @Prop({ required: false })
+  @Prop({ default: null })
   profilePic?: string;
 
-  @Prop({ required: false, default: false })
+  @Prop({ default: false })
   isOnline?: boolean;
 
-  @Prop({ required: true, unique: true })
+  @Prop({ unique: true })
   phoneNumber: string;
 
-  @Prop({ required: false, default: [] })
+  @Prop({ default: [] })
   groupId?: string[];
 
-  @Prop({ required: false })
+  @Prop({ default: null })
   refreshToken?: string;
 
-  @Prop({ required: false, default: false })
+  @Prop({ default: false })
   isPhoneVerified?: boolean;
 
   @Prop({ type: Date, default: () => dayjs().toDate() })
   createdAt?: Date;
 
-  @Prop()
+  @Prop({ default: null })
   otp?: OTP;
 }
 
