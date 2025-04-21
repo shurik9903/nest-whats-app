@@ -2,17 +2,22 @@ import { Inject, Injectable } from '@nestjs/common';
 import { MINIO_CONNECTION } from 'nestjs-minio';
 import { Client } from 'minio';
 import { v7 as uuidv7 } from 'uuid';
-import { ConfigService } from '@nestjs/config';
-import { MinioConfig } from 'src/config/interfaces/minio.interface';
 import { ImageUploadException } from 'src/core/exceptions/ImageUpload.exception';
 import { Readable } from 'stream';
+import { UploadedObjectInfo } from 'minio/dist/main/internal/type';
+import { ConfigService } from '@nestjs/config';
+import { MinioConfig } from 'src/config/interfaces/minio.interface';
 
 @Injectable()
 export class UploadService {
+  private minioConfig: MinioConfig;
+
   constructor(
     @Inject(MINIO_CONNECTION) private readonly minioClient: Client,
     private readonly configService: ConfigService,
-  ) {}
+  ) {
+    this.minioConfig = this.configService.getOrThrow('minio');
+  }
 
   async upload(userId: string, file: Express.Multer.File) {
     try {
@@ -28,7 +33,7 @@ export class UploadService {
       throw new ImageUploadException('Image must have name.');
     }
 
-    const filename: string = this.generateFileName(file);
+    const fileName: string = this.generateFileName(file);
     let inputStream: Readable;
 
     try {
@@ -40,20 +45,30 @@ export class UploadService {
       throw new Error(String(error as string));
     }
 
-    await this.saveImage(inputStream, `${userId}-${filename}`);
+    await this.saveFile(inputStream, `${userId}-${fileName}`);
 
-    return filename;
+    return fileName;
+  }
+
+  async download(userId: string, fileName: string): Promise<Readable> {
+    return await this.getFile(`${userId}-${fileName}`);
+  }
+
+  async delete(userId: string, fileName: string) {
+    await this.deleteFile(`${userId}-${fileName}`);
+  }
+
+  async fileUrl(userId: string, fileName: string) {
+    return await this.getFileUrl(`${userId}-${fileName}`);
   }
 
   private async createBucket() {
-    const minioConfig: MinioConfig = this.configService.getOrThrow('minio');
-
     const found: boolean = await this.minioClient.bucketExists(
-      minioConfig.bucket.name,
+      this.minioConfig.bucket.name,
     );
 
     if (!found) {
-      await this.minioClient.makeBucket(minioConfig.bucket.name);
+      await this.minioClient.makeBucket(this.minioConfig.bucket.name);
     }
   }
 
@@ -62,13 +77,40 @@ export class UploadService {
     return uuidv7() + '.' + extension;
   }
 
-  private async saveImage(inputStream: Readable, filename: string) {
-    const minioConfig: MinioConfig = this.configService.getOrThrow('minio');
-
-    await this.minioClient.putObject(
-      minioConfig.bucket.name,
+  private async saveFile(
+    inputStream: Readable,
+    filename: string,
+  ): Promise<UploadedObjectInfo> {
+    return await this.minioClient.putObject(
+      this.minioConfig.bucket.name,
       filename,
       inputStream,
+    );
+  }
+
+  private async deleteFile(filename: string) {
+    await this.minioClient.removeObject(
+      this.minioConfig.bucket.name,
+      filename,
+      {
+        forceDelete: true,
+      },
+    );
+  }
+
+  private async getFile(filename: string): Promise<Readable> {
+    return await this.minioClient.getObject(
+      this.minioConfig.bucket.name,
+      filename,
+    );
+  }
+
+  private async getFileUrl(filename: string): Promise<string> {
+    // Возможность указать дату создания и время жизни ссылки на файл
+    return await this.minioClient.presignedUrl(
+      'GET',
+      this.minioConfig.bucket.name,
+      filename,
     );
   }
 }
