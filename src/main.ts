@@ -1,7 +1,6 @@
 import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app/app.module';
 import cookieParser from 'cookie-parser';
-import { TransformInterceptor } from './core/interceptors/transform.interceptor';
 import { HttpExceptionFilter } from './core/exceptions/HttpExceptionFilter';
 
 async function bootstrap() {
@@ -14,8 +13,6 @@ async function bootstrap() {
 
   const { httpAdapter } = app.get(HttpAdapterHost);
   app.useGlobalFilters(new HttpExceptionFilter(httpAdapter));
-
-  app.useGlobalInterceptors(new TransformInterceptor());
 
   app.setGlobalPrefix('api/v1');
 
