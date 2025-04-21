@@ -123,7 +123,6 @@ export class HttpExceptionFilter extends BaseExceptionFilter {
   private AuthenticationExceptionHandler(
     exception: AuthenticationException,
   ): ExceptionBody {
-    console.log(exception.message);
     return new ExceptionBody({
       message: exception.message,
       status: HttpStatus.BAD_REQUEST,
