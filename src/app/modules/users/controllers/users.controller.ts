@@ -56,6 +56,6 @@ export class UsersController {
     )
     file: Express.Multer.File,
   ) {
-    return await this.userService.profileUpload(user, file);
+    await this.userService.profileUpload(user, file);
   }
 }

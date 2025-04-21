@@ -61,6 +61,11 @@ export class UsersService {
   }
 
   async profileUpload(data: User, file: Express.Multer.File) {
+    if (!data.profilePic) {
+      await this.uploadService.delete(String(data._id), data.profilePic);
+      data.profilePic = null;
+    }
+
     const saveFileUUID: string = await this.uploadService.upload(
       String(data._id),
       file,
