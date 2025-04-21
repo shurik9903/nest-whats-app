@@ -16,11 +16,15 @@ import { TokenConfig } from '../../../../config/interfaces/token.interface';
 
 @Injectable()
 export class AuthService {
+  private token: TokenConfig;
+
   constructor(
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
-  ) {}
+  ) {
+    this.token = this.configService.getOrThrow('jwt');
+  }
 
   async phone(user: User) {
     let findUser: User | undefined = null;
@@ -62,6 +66,13 @@ export class AuthService {
   async phoneVerify(user: User, response: Response) {
     const findUser: User = await this.usersService.getByPhone(user.phoneNumber);
 
+    if (!findUser?.otp) {
+      throw new HttpException(
+        'OTP not created. Please use the standard authorization method.',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     if (findUser?.otp?.expiresAt < dayjs().toDate()) {
       const codeOTP = generateOTP(6);
 
@@ -93,16 +104,14 @@ export class AuthService {
   }
 
   async login(user: User, response: Response) {
-    const token: TokenConfig = this.configService.getOrThrow('jwt');
-
     const expiresAccessToken = new Date();
     expiresAccessToken.setMilliseconds(
-      expiresAccessToken.getTime() + parseInt(token.token.expire),
+      expiresAccessToken.getTime() + parseInt(this.token.token.expire),
     );
 
     const expiresRefreshToken = new Date();
     expiresRefreshToken.setMilliseconds(
-      expiresRefreshToken.getTime() + parseInt(token.refresh.expire),
+      expiresRefreshToken.getTime() + parseInt(this.token.refresh.expire),
     );
 
     const tokenPayload: tokenPayload = {
@@ -111,13 +120,13 @@ export class AuthService {
     };
 
     const accessToken = this.jwtService.sign(tokenPayload, {
-      secret: token.token.secret,
-      expiresIn: `${token.token.expire}ms`,
+      secret: this.token.token.secret,
+      expiresIn: `${this.token.token.expire}ms`,
     });
 
     const refreshToken = this.jwtService.sign(tokenPayload, {
-      secret: token.refresh.secret,
-      expiresIn: `${token.refresh.expire}ms`,
+      secret: this.token.refresh.secret,
+      expiresIn: `${this.token.refresh.expire}ms`,
     });
 
     await this.usersService.updateRefreshTokenById(
